@@ -114,24 +114,30 @@ def smart_diagnosis(
     scores = {"Healthy": 0.0, "Alzheimer": 0.0, "Parkinson": 0.0}
 
     # Healthy baseline
-    if moca >= 26: scores["Healthy"] += 2.0
-    if mmse >= 24: scores["Healthy"] += 2.0
-    if updrs <= 4: scores["Healthy"] += 2.0
-    if age < 60: scores["Healthy"] += 1.0
+    if moca >= 26: scores["Healthy"] += 2.5
+    if mmse >= 24: scores["Healthy"] += 2.5
+    if updrs <= 4: scores["Healthy"] += 2.5
+    if age < 60: scores["Healthy"] += 1.5
+    if alpha >= 0.8: scores["Healthy"] += 1.0  # Güçlü alfa = sağlık
 
     # Alzheimer indicators
-    if moca < 22: scores["Alzheimer"] += 2.5
-    if mmse < 24: scores["Alzheimer"] += 2.5
-    if theta > 0.7: scores["Alzheimer"] += 1.5  # Teta artışı
-    if delta > 0.6: scores["Alzheimer"] += 1.5  # Delta artışı
-    if alpha < 0.5: scores["Alzheimer"] += 1.0  # Alfa azalması
-    if age > 65: scores["Alzheimer"] += 0.5
+    if moca < 22: scores["Alzheimer"] += 3.0
+    if mmse < 24: scores["Alzheimer"] += 3.0
+    if theta > 0.7: scores["Alzheimer"] += 2.0  # Teta artışı (yavaşlama)
+    if delta > 0.6: scores["Alzheimer"] += 2.0  # Delta artışı
+    if alpha < 0.5: scores["Alzheimer"] += 1.5  # Alfa azalması
+    if age > 65: scores["Alzheimer"] += 0.8
 
-    # Parkinson indicators
-    if updrs > 10: scores["Parkinson"] += 3.0
-    if updrs > 20: scores["Parkinson"] += 2.0
-    if beta > 0.8: scores["Parkinson"] += 1.5  # Beta tremoru
-    if age > 60: scores["Parkinson"] += 0.5
+    # Parkinson indicators - GÜÇLENDİRİLDİ
+    if updrs > 8: scores["Parkinson"] += 3.0
+    if updrs > 15: scores["Parkinson"] += 2.5
+    if updrs > 25: scores["Parkinson"] += 2.0   # Çok yüksek UPDRS
+    if beta > 0.8: scores["Parkinson"] += 2.0   # Beta tremoru
+    if beta > 1.0: scores["Parkinson"] += 1.5   # Çok yüksek beta
+    if age > 60: scores["Parkinson"] += 0.8
+    # Eğer MoCA/MMSE normal ama UPDRS yüksekse → kesin Parkinson
+    if moca >= 25 and mmse >= 25 and updrs > 10:
+        scores["Parkinson"] += 2.5
 
     # Forced override güçlü skor verir (ama %100 olmasın)
     if forced:
@@ -159,33 +165,33 @@ def smart_diagnosis(
 def build_report(pred: str, probs: dict) -> str:
     p = probs[pred]
     if p > 0.75:
-        level = "High"
+        level = "Yüksek"
     elif p > 0.5:
-        level = "Moderate"
+        level = "Orta"
     else:
-        level = "Low"
+        level = "Düşük"
 
     if pred == "Healthy":
         return (
-            f"{level} confidence ({p*100:.1f}%) of a healthy neurological profile. "
-            "No pathological pattern detected in EEG features. "
-            "Routine follow-up recommended."
+            f"{level} güvenilirlik ({p*100:.1f}%) ile sağlıklı nörolojik profil tespit edildi. "
+            "EEG sinyallerinde patolojik bir örüntüye rastlanmadı. "
+            "Rutin takip önerilir."
         )
     if pred == "Alzheimer":
         return (
-            f"{level} probability ({p*100:.1f}%) of Alzheimer's disease pattern. "
-            "EEG shows characteristic slowing in alpha/beta bands combined with "
-            "cognitive score profile. Recommend further clinical evaluation, "
-            "MRI imaging, and neuropsychological testing."
+            f"{level} olasılıkla ({p*100:.1f}%) Alzheimer hastalığı örüntüsü tespit edildi. "
+            "EEG'de alfa/beta bantlarında karakteristik yavaşlama ve bilişsel skor profili "
+            "ile uyumlu bulgular mevcut. İleri klinik değerlendirme, MRI görüntüleme ve "
+            "nöropsikolojik test yapılması önerilir."
         )
     if pred == "Parkinson":
         return (
-            f"{level} probability ({p*100:.1f}%) of Parkinson's disease pattern. "
-            "EEG and motor scale (UPDRS) findings are consistent with Parkinsonian "
-            "neurodegeneration. Recommend movement disorder specialist consultation "
-            "and DAT-SPECT imaging."
+            f"{level} olasılıkla ({p*100:.1f}%) Parkinson hastalığı örüntüsü tespit edildi. "
+            "EEG bulguları ve motor skala (UPDRS) değerleri Parkinson tipi nörodejenerasyon "
+            "ile uyumlu. Hareket bozuklukları uzmanı konsültasyonu ve DAT-SPECT görüntüleme "
+            "önerilir."
         )
-    return "Unable to determine."
+    return "Tahmin yapılamadı."
 
 
 # ============================================================
